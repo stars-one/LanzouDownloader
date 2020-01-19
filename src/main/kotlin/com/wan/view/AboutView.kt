@@ -33,7 +33,7 @@ class AboutView : View(" by stars-one") {
                             text("stars-one")
                         }
                         field("项目地址：") {
-                            hyperlink("https://github.com/Stars-One/M3u8Downloader") {
+                            hyperlink("https://github.com/Stars-One/LanzouDownloader") {
                                 setOnMouseClicked {
                                     Desktop.getDesktop().browse(URI(this.text.toString()))
                                 }

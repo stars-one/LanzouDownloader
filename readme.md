@@ -4,6 +4,8 @@
 基于HtmlUnit和okhttp开源库，所以打包后的jar包文件有点大
 
 [蓝奏云下载地址](https://www.lanzous.com/b0cpwdmrc)
+
+[github地址](https://github.com/Stars-One/LanzouDownloader)
 ## 需求
 之前找电子书资源的时候，网友分享的蓝奏云地址，里面的文件有点多，但是，蓝奏云并没有批量下载功能，我又不想一个个点击下载，便是产生了这款软件
 
