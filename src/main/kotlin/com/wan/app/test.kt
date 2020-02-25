@@ -1,8 +1,15 @@
 package com.wan.app
 
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
+import com.gargoylesoftware.htmlunit.BrowserVersion
+import com.gargoylesoftware.htmlunit.NicelyResynchronizingAjaxController
+import com.gargoylesoftware.htmlunit.WebClient
+import com.gargoylesoftware.htmlunit.html.HtmlPage
+import com.wan.util.HttpUtil
+import com.wan.view.ItemData
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import java.io.IOException
 
 /**
  *
@@ -12,6 +19,7 @@ import java.net.URL
  *
  */
 fun main(args: Array<String>) {
+
 
     /*val controller = MainController()
     val itemDatas = controller.download("https://www.lanzous.com/b607378", "ggdw")
@@ -38,17 +46,35 @@ fun main(args: Array<String>) {
 }
 
 
-/**
- * 下载文件到本地
- * @param url 网址
- * @param file 文件
- */
-private fun downloadFile(url: String, file: File) {
-    HttpURLConnection.setFollowRedirects(false)
-    val conn = URL(url).openConnection()
-    conn.setRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 5.0; Windows NT; DigExt)")
-    val url = conn.getHeaderField("Location")
-    println(url)
-    val bytes = conn.getInputStream().readBytes()
-    file.writeBytes(bytes)
+fun getDownloadLink(itemData: ItemData) {
+    val url = itemData.url
+    val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
+    //webclient设置
+    webClient.options.isJavaScriptEnabled = true // 启动JS
+    webClient.options.isUseInsecureSSL = true//忽略ssl认证
+    webClient.options.isCssEnabled = false//禁用Css，可避免自动二次请求CSS进行渲染
+    webClient.options.isThrowExceptionOnScriptError = false//运行错误时，不抛出异常
+    webClient.options.isThrowExceptionOnFailingStatusCode = false
+    webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
+
+    val page = webClient.getPage<HtmlPage>(url)
+
+    val srcText = page.getElementsByTagName("iframe")[0].getAttribute("src")
+    val downloadHtmlUrl = "https://www.lanzous.com$srcText"
+
+    val downloadPage = webClient.getPage<HtmlPage>(downloadHtmlUrl)
+    webClient.waitForBackgroundJavaScript(1000)
+    val address = downloadPage.getElementById("go").firstElementChild.getAttribute("href")
+
+    HttpUtil.sendOkHttpRequest(address, object : Callback {
+        override fun onFailure(p0: Call?, p1: IOException?) {
+            println("error")
+        }
+
+        override fun onResponse(p0: Call?, response: Response?) {
+            itemData.downloadLink = response?.request()?.url().toString()
+            response?.close()
+        }
+    })
+
 }

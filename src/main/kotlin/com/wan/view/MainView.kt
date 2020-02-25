@@ -8,6 +8,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput
 import com.wan.util.HttpUtil
 import javafx.scene.control.TextField
+import javafx.scene.control.ToggleGroup
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -21,6 +22,7 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
     var passTf by singleAssign<TextField>()//提取码
     var threadCountTf by singleAssign<TextField>()//线程数
     var pageTf by singleAssign<TextField>()//自动翻页数
+    var toggle by singleAssign<ToggleGroup>()
     val controller = MainController()
     val listView = ListView()
     override val root = vbox {
@@ -36,6 +38,23 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
         }
         form {
             fieldset {
+                field {
+                    text("地址是否为自定义分享地址")
+                    toggle = togglegroup {
+                        radiobutton("是") {
+                            userData = 1
+                        }
+                        radiobutton("否") {
+                            isSelected = true
+                            userData = 0
+                        }
+                    }
+                    hyperlink("什么是自定义分享地址？") {
+                        action {
+                            find(DescView::class).openWindow()
+                        }
+                    }
+                }
                 field {
                     urlTf = textfield {
                         promptText = "输入蓝奏云网址"
@@ -54,11 +73,11 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
                             listView.flagText.text = "解析中，请耐心等待.."
                             runAsync {
                                 val data = if (password.isBlank()) {
-                                    controller.download(url)
+                                    controller.download(url, flag = toggle.selectedToggle.userData as Int)
                                 } else {
                                     val threadCount = if (threadCountTf.text.isBlank()) 5 else threadCountTf.text.toInt()
                                     val pageCount = if (pageTf.text.isBlank()) 5 else pageTf.text.toInt()
-                                    controller.download(url, password, threadCount, pageCount)
+                                    controller.download(url, password, threadCount, pageCount, toggle.selectedToggle.userData as Int)
                                 }
                                 //需要等待，否则最后一条数据解析不到真实地址
                                 while (true) {
@@ -88,12 +107,58 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
 
 class MainController {
     /**
+     * 此方法是适合普通的那些蓝奏云列表分享地址
      * @param url 多文件蓝奏云地址，如 https://www.lanzous.com/b607378
      * @param password 提取码，默认为无
      * @return 下载地址 List<String>
      */
-    fun download(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
+    fun download(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5, flag: Int): ArrayList<ItemData> {
+        return if (flag == 0) {
+            //解析自定义分享链接的
+            parseCustomShare(url, password, threadCount, pageCount)
+        } else {
+            parseNormalShare(url, password, threadCount, pageCount)
+        }
+    }
 
+    private fun parseCustomShare(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
+        val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
+        //webclient设置
+        webClient.options.isJavaScriptEnabled = true // 启动JS
+        webClient.options.isUseInsecureSSL = true//忽略ssl认证
+        webClient.options.isCssEnabled = false//禁用Css，可避免自动二次请求CSS进行渲染
+        webClient.options.isThrowExceptionOnScriptError = false//运行错误时，不抛出异常
+        webClient.options.isThrowExceptionOnFailingStatusCode = false
+        webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
+        var page = webClient.getPage<HtmlPage>(url)
+
+        //自动翻页
+        for (i in 0 until pageCount) {
+            if (page.getElementById("filemore") != null) {
+                page = page.getElementById("filemore").click()
+            } else {
+                break
+            }
+        }
+        //等待数据加载
+        webClient.waitForBackgroundJavaScript(2000)
+        val readyNodes = page.getElementsById("ready")
+        println(readyNodes.size)
+        val itemDatas = arrayListOf<ItemData>()
+        for (readyNode in readyNodes) {
+            val link = readyNode.getElementsByTagName("a")[0].getAttribute("href")
+            val size = readyNode.getElementsByTagName("div")[3].textContent
+            val fileName = readyNode.textContent.replace(size, "")
+            itemDatas.add(ItemData(fileName, link, "", size, ""))
+        }
+        getAllDownloadLink(itemDatas, threadCount)
+        return itemDatas
+    }
+
+    /**
+     * 普通链接分享
+     */
+    private fun parseNormalShare(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
         webClient.options.isJavaScriptEnabled = true // 启动JS
@@ -105,20 +170,6 @@ class MainController {
 
         var page = webClient.getPage<HtmlPage>(url)
 
-        //文件可能不止一页,为了防止被封IP，限定最大翻页数，由用户输入
-        for (i in 0 until pageCount) {
-            if (page.getElementById("filemore") != null) {
-                page = page.getElementById("filemore").click()
-            } else {
-                break
-            }
-        }
-
-        /*while (page.getElementById("filemore") != null) {
-            page = page.getElementById("filemore").click()
-            webClient.waitForBackgroundJavaScript(2000)
-        }*/
-
         val readyNodes = if (password.isNotBlank()) {
             //有密码的情况
             val pwdInput = page.getElementByName<HtmlTextInput>("pwd")
@@ -126,8 +177,25 @@ class MainController {
             pwdInput.valueAttribute = password
             val finishPage = button.click<HtmlPage>()
             webClient.waitForBackgroundJavaScript(2000)
+
+            //文件可能不止一页,为了防止被封IP，限定最大翻页数，由用户输入
+            for (i in 0 until pageCount) {
+                if (page.getElementById("filemore") != null) {
+                    page = page.getElementById("filemore").click()
+                } else {
+                    break
+                }
+            }
             finishPage.getElementsById("ready")
         } else {
+            //文件可能不止一页,为了防止被封IP，限定最大翻页数，由用户输入
+            for (i in 0 until pageCount) {
+                if (page.getElementById("filemore") != null) {
+                    page = page.getElementById("filemore").click()
+                } else {
+                    break
+                }
+            }
             webClient.waitForBackgroundJavaScript(2000)
             page.getElementsById("ready")
         }
@@ -151,6 +219,9 @@ class MainController {
         return itemDatas
     }
 
+    /**
+     * 获得列表中每个单条蓝奏云地址的真实地址（普通）
+     */
     private fun getAllDownloadLink(itemDatas: ArrayList<ItemData>, threadCount: Int = 5) {
 
         val countDownLatch = CountDownLatch(threadCount)
@@ -184,7 +255,7 @@ class MainController {
     }
 
     /**
-     * 获得真实下载地址，并存入itemData的downloadLink属性中
+     * 获得真实下载地址，并存入itemData的downloadLink属性中（普通）
      * @param itemData 单个文件对象
      */
     fun getDownloadLink(itemData: ItemData) {
