@@ -71,14 +71,11 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
                             val password = passTf.text
                             listView.clearData()
                             listView.flagText.text = "解析中，请耐心等待.."
+                            val flag = toggle.selectedToggle.userData as Int
+                            val threadCount = if (threadCountTf.text.isBlank()) 5 else threadCountTf.text.toInt()
+                            val pageCount = if (pageTf.text.isBlank()) 5 else pageTf.text.toInt()
                             runAsync {
-                                val data = if (password.isBlank()) {
-                                    controller.download(url, flag = toggle.selectedToggle.userData as Int)
-                                } else {
-                                    val threadCount = if (threadCountTf.text.isBlank()) 5 else threadCountTf.text.toInt()
-                                    val pageCount = if (pageTf.text.isBlank()) 5 else pageTf.text.toInt()
-                                    controller.download(url, password, threadCount, pageCount, toggle.selectedToggle.userData as Int)
-                                }
+                                val data = controller.download(url, password, threadCount, pageCount, flag)
                                 //需要等待，否则最后一条数据解析不到真实地址
                                 while (true) {
                                     if (!data.last().downloadLink.isBlank()) {
@@ -112,8 +109,8 @@ class MainController {
      * @param password 提取码，默认为无
      * @return 下载地址 List<String>
      */
-    fun download(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5, flag: Int): ArrayList<ItemData> {
-        return if (flag == 0) {
+    fun download(url: String, password: String , threadCount: Int , pageCount: Int , flag: Int): ArrayList<ItemData> {
+        return if (flag == 1) {
             //解析自定义分享链接的
             parseCustomShare(url, password, threadCount, pageCount)
         } else {
@@ -121,7 +118,7 @@ class MainController {
         }
     }
 
-    private fun parseCustomShare(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
+    private fun parseCustomShare(url: String, password: String , threadCount: Int, pageCount: Int): ArrayList<ItemData> {
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
         webClient.options.isJavaScriptEnabled = true // 启动JS
@@ -158,7 +155,7 @@ class MainController {
     /**
      * 普通链接分享
      */
-    private fun parseNormalShare(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
+    private fun parseNormalShare(url: String, password: String , threadCount: Int, pageCount: Int ): ArrayList<ItemData> {
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
         webClient.options.isJavaScriptEnabled = true // 启动JS
