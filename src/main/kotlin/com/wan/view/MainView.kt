@@ -56,9 +56,9 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
                                 val data = if (password.isBlank()) {
                                     controller.download(url)
                                 } else {
-                                    val threadCount = if (threadCountTf.text.isBlank() ) 5 else threadCountTf.text.toInt()
-                                    val pageCount = if (pageTf.text.isBlank() ) 5 else pageTf.text.toInt()
-                                    controller.download(url,password, threadCount, pageCount)
+                                    val threadCount = if (threadCountTf.text.isBlank()) 5 else threadCountTf.text.toInt()
+                                    val pageCount = if (pageTf.text.isBlank()) 5 else pageTf.text.toInt()
+                                    controller.download(url, password, threadCount, pageCount)
                                 }
                                 //需要等待，否则最后一条数据解析不到真实地址
                                 while (true) {
@@ -75,10 +75,10 @@ class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
                     }
                 }
                 field {
-                    threadCountTf = textfield { promptText="输入解析线程数(1-128)，默认为5,理论上线程数越多解析速度越快,但也不要设置过大" }
+                    threadCountTf = textfield { promptText = "输入解析线程数(1-128)，默认为5,理论上线程数越多解析速度越快,但也不要设置过大" }
                 }
                 field {
-                    pageTf = textfield { promptText="输入翻页数（当文件列表不止一页，自动翻页），默认为5，翻5页后开始解析" }
+                    pageTf = textfield { promptText = "输入翻页数（当文件列表不止一页，自动翻页），默认为5，翻5页后开始解析" }
                 }
             }
             this += listView
@@ -92,7 +92,7 @@ class MainController {
      * @param password 提取码，默认为无
      * @return 下载地址 List<String>
      */
-    fun download(url: String, password: String = "",threadCount: Int=5,pageCount: Int=5): ArrayList<ItemData> {
+    fun download(url: String, password: String = "", threadCount: Int = 5, pageCount: Int = 5): ArrayList<ItemData> {
 
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
@@ -104,9 +104,6 @@ class MainController {
         webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
 
         var page = webClient.getPage<HtmlPage>(url)
-
-        //初始化列表（分享的蓝奏云地址中的所有文件）
-        val itemDatas = arrayListOf<ItemData>()
 
         //文件可能不止一页,为了防止被封IP，限定最大翻页数，由用户输入
         for (i in 0 until pageCount) {
@@ -122,7 +119,6 @@ class MainController {
             webClient.waitForBackgroundJavaScript(2000)
         }*/
 
-
         val readyNodes = if (password.isNotBlank()) {
             //有密码的情况
             val pwdInput = page.getElementByName<HtmlTextInput>("pwd")
@@ -135,6 +131,8 @@ class MainController {
             webClient.waitForBackgroundJavaScript(2000)
             page.getElementsById("ready")
         }
+        //初始化列表（分享的蓝奏云地址中的所有文件）
+        val itemDatas = arrayListOf<ItemData>()
         //readyNode包含name,size,time
         for (readyNode in readyNodes) {
             val childNodes = readyNode.getElementsByTagName("div")
@@ -149,7 +147,7 @@ class MainController {
             itemDatas.add(ItemData(name, link, "", size, time))
         }
         //多线程解析
-        getAllDownloadLink(itemDatas,threadCount)
+        getAllDownloadLink(itemDatas, threadCount)
         return itemDatas
     }
 

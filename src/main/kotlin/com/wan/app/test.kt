@@ -1,6 +1,5 @@
 package com.wan.app
 
-import com.wan.view.MainController
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -28,11 +27,12 @@ fun main(args: Array<String>) {
         println(itemData.fileName + "已下载")
     }*/
 //    val url = "https://vip.d0.baidupan.com/file/?BGIHOQg5Dj9UXQszU2ZSPlBvADhR6QOkA5oE6lekB5tVsgHtD9oEtQPlU4MKuFXJUK9QsQTjUecA4FvHVo4G4QSQB+4IsA73VKQLuFOXUt1Q7ACNUZYD5QO+BItXKwfgVcIB8w+3BN4D01PiCvFV01AkUDAEK1EmAGVbe1ZsBm4EaAc1CAoOM1RmC2BTMFJiUDMAMVE4AzQDMwQkV20HdVVoAWQPYgRgA2NTNApnVWJQLFAlBCtRbgA1W21WOwY+BCsHYAhnDnVUMAtrUyhSZVBpADxRNwNjAzcEZFc8BzZVMQFnDzAEZwNhUzAKbFVkUG9QNgRsUWQANltqVjIGNwQ8B2AIZg4+VDALbFNiUn1QbwB1UXsDYwMiBHdXeAdjVScBPw82BG0DbVMyCmpVZlA7UGMEfVEnAG5bMFZvBmEEOQdhCGAObVQ7C29TM1JrUDsANVE8Ay8DIgR3V3sHO1VkAXgPdAQ2AzlTcgpjVWVQP1BiBGJRYQAzW2hWOQY+BDQHdgggDipUdQtgUzZSZlA/ADRRPwM5AzMEM1czBzNVcwEjDzsEIANoUzQKb1VjUCRQZARjUWAAKVtvVjoGNQQqB2EIZg5v"
-    val mainController = MainController()
+   /* val mainController = MainController()
     val download = mainController.download("https://www.lanzous.com/b0cpr90ti")
     for (itemData in download) {
         println(itemData.toString())
     }
+*/
 
 
 }
