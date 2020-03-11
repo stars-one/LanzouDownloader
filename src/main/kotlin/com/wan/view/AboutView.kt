@@ -14,7 +14,7 @@ class AboutView : View(" by stars-one") {
             paddingTop = 10.0
             spacing = 10.0
             setPrefSize(800.0, 300.0)
-            text("蓝奏云批量下载 v1.0") {
+            text("蓝奏云批量下载 v1.1") {
                 alignment = Pos.TOP_CENTER
                 style {
                     fontWeight = FontWeight.BOLD
@@ -53,7 +53,7 @@ class AboutView : View(" by stars-one") {
                             text("1053894518")
                         }
                         field("软件交流群：") {
-                            text("")
+                            text("1046548165")
                         }
                     }
                     fieldset {

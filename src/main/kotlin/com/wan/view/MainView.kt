@@ -6,18 +6,14 @@ import com.gargoylesoftware.htmlunit.WebClient
 import com.gargoylesoftware.htmlunit.html.HtmlPage
 import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput
-import com.wan.util.HttpUtil
+import com.wan.util.LanzouParse
 import javafx.scene.control.TextField
 import javafx.scene.control.ToggleGroup
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
 import tornadofx.*
-import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
 
-class MainView : View("蓝奏云批量下载v1.0 by stars-one") {
+class MainView : View("蓝奏云批量下载v1.1 by stars-one") {
     var urlTf by singleAssign<TextField>()//网址
     var passTf by singleAssign<TextField>()//提取码
     var threadCountTf by singleAssign<TextField>()//线程数
@@ -118,17 +114,14 @@ class MainController {
         }
     }
 
+    /**
+     * 解析自定义分享地址
+     */
     private fun parseCustomShare(url: String, password: String , threadCount: Int, pageCount: Int): ArrayList<ItemData> {
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
-        webClient.options.isJavaScriptEnabled = true // 启动JS
-        webClient.options.isUseInsecureSSL = true//忽略ssl认证
-        webClient.options.isCssEnabled = false//禁用Css，可避免自动二次请求CSS进行渲染
-        webClient.options.isThrowExceptionOnScriptError = false//运行错误时，不抛出异常
-        webClient.options.isThrowExceptionOnFailingStatusCode = false
-        webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
+        webClientConfig(webClient)
         var page = webClient.getPage<HtmlPage>(url)
-
         //自动翻页
         for (i in 0 until pageCount) {
             if (page.getElementById("filemore") != null) {
@@ -158,15 +151,9 @@ class MainController {
     private fun parseNormalShare(url: String, password: String , threadCount: Int, pageCount: Int ): ArrayList<ItemData> {
         val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
         //webclient设置
-        webClient.options.isJavaScriptEnabled = true // 启动JS
-        webClient.options.isUseInsecureSSL = true//忽略ssl认证
-        webClient.options.isCssEnabled = false//禁用Css，可避免自动二次请求CSS进行渲染
-        webClient.options.isThrowExceptionOnScriptError = false//运行错误时，不抛出异常
-        webClient.options.isThrowExceptionOnFailingStatusCode = false
-        webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
+        webClientConfig(webClient)
 
         var page = webClient.getPage<HtmlPage>(url)
-
         val readyNodes = if (password.isNotBlank()) {
             //有密码的情况
             val pwdInput = page.getElementByName<HtmlTextInput>("pwd")
@@ -257,37 +244,20 @@ class MainController {
      */
     fun getDownloadLink(itemData: ItemData) {
         val url = itemData.url
-        val webClient = WebClient(BrowserVersion.CHROME) //创建一个webclient
-        //webclient设置
+        itemData.downloadLink = LanzouParse().getDownloadLink(url)
+    }
+
+    /**
+     * webclient设置
+     */
+    private fun webClientConfig(webClient: WebClient) {
         webClient.options.isJavaScriptEnabled = true // 启动JS
         webClient.options.isUseInsecureSSL = true//忽略ssl认证
         webClient.options.isCssEnabled = false//禁用Css，可避免自动二次请求CSS进行渲染
         webClient.options.isThrowExceptionOnScriptError = false//运行错误时，不抛出异常
         webClient.options.isThrowExceptionOnFailingStatusCode = false
         webClient.ajaxController = NicelyResynchronizingAjaxController()// 设置Ajax异步
-
-        val page = webClient.getPage<HtmlPage>(url)
-
-        val srcText = page.getElementsByTagName("iframe")[0].getAttribute("src")
-        val downloadHtmlUrl = "https://www.lanzous.com$srcText"
-
-        val downloadPage = webClient.getPage<HtmlPage>(downloadHtmlUrl)
-        webClient.waitForBackgroundJavaScript(1000)
-        val address = downloadPage.getElementById("go").firstElementChild.getAttribute("href")
-
-        HttpUtil.sendOkHttpRequest(address, object : Callback {
-            override fun onFailure(p0: Call?, p1: IOException?) {
-                println("error")
-            }
-
-            override fun onResponse(p0: Call?, response: Response?) {
-                itemData.downloadLink = response?.request()?.url().toString()
-                response?.close()
-            }
-        })
-
     }
-
 }
 
 data class ItemData(var fileName: String, var url: String, var downloadLink: String, var fileSize: String, var time: String)
