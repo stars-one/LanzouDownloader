@@ -10,7 +10,9 @@
 
 [github地址](https://github.com/Stars-One/LanzouDownloader)
 
-已更新v1.1版本（软件内并没有修改版本号，请知晓）
+~~已更新v1.1版本（软件内并没有修改版本号，请知晓）~~
+
+新版本不打算开源,想使用软件请查看[https://stars-one.site/2020/07/20/lanzoudownloader](https://stars-one.site/2020/07/20/lanzoudownloader)
 
 ## 需求
 之前找电子书资源的时候，网友分享的蓝奏云地址，里面的文件有点多，但是，蓝奏云并没有批量下载功能，我又不想一个个点击下载，便是产生了这款软件
